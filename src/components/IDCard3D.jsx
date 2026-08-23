@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { getProfileImageSync, preloadProfileImage } from '../utils/profileImageLoader';
 
 // Helper to draw a rounded rectangle on a 2D canvas
 function drawRoundedRect(ctx, x, y, width, height, radius) {
@@ -168,20 +169,16 @@ export default function IDCard3D() {
 
   const { camera, mouse, viewport } = useThree();
 
-  // Load profile image
-  const [profileImg, setProfileImg] = useState(null);
+  // Load preloaded profile image
+  const [profileImg, setProfileImg] = useState(() => getProfileImageSync());
 
   useEffect(() => {
-    const img = new Image();
-    img.src = '/assets/profile.png?t=' + Date.now();
-    img.onload = () => {
-      console.log("Profile image loaded successfully inside component:", img.width, img.height);
-      setProfileImg(img);
-    };
-    img.onerror = (err) => {
-      console.error("Failed to load profile image from /assets/profile.png:", err);
-    };
-  }, []);
+    if (!profileImg) {
+      preloadProfileImage().then((img) => {
+        if (img) setProfileImg(img);
+      });
+    }
+  }, [profileImg]);
 
   // Generate canvas in memory once
   const canvas = useMemo(() => {
@@ -189,8 +186,9 @@ export default function IDCard3D() {
     el.width = 512;
     el.height = 768;
     
-    // Draw the fallback content synchronously on creation
-    drawCard(el, null);
+    // Draw the card synchronously with preloaded image if available
+    const initialImg = getProfileImageSync();
+    drawCard(el, initialImg);
     return el;
   }, []);
 
@@ -201,10 +199,9 @@ export default function IDCard3D() {
     return tex;
   }, [canvas]);
 
-  // Update canvas contents when image loads and flag texture updates
+  // Update canvas contents if image ready after initial render
   useEffect(() => {
     if (profileImg) {
-      console.log("Redrawing canvas with loaded profile image");
       drawCard(canvas, profileImg);
       cardTexture.needsUpdate = true;
     }

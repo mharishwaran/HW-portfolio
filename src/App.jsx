@@ -7,6 +7,7 @@ import {
   ExperienceSection, CertificationsSection, ContactSection 
 } from './components/Sections';
 import { ChevronDown, Cpu, ChevronUp } from 'lucide-react';
+import { preloadProfileImage } from './utils/profileImageLoader';
 
 const SECTIONS = ['home', 'about', 'skills', 'projects', 'experience', 'certifications', 'contact'];
 
@@ -18,10 +19,13 @@ export default function App() {
   const scrollLock = useRef(false);
   const touchStartY = useRef(0);
 
-  // 1. Loader screen progress bar animation
+  // 1. Loader screen progress bar animation & asset preloading
   useEffect(() => {
     if (!loading) return;
     
+    // Immediately initiate profile image preload
+    preloadProfileImage();
+
     const textSequence = [
       { progress: 20, text: 'Resolving MERN stack components...' },
       { progress: 45, text: 'Compiling WebGL materials...' },
@@ -34,7 +38,9 @@ export default function App() {
       setLoadProgress((prev) => {
         if (prev >= 100) {
           clearInterval(timer);
-          setTimeout(() => setLoading(false), 800); // smooth fade
+          preloadProfileImage().then(() => {
+            setTimeout(() => setLoading(false), 500); // smooth fade after asset ready
+          });
           return 100;
         }
         
