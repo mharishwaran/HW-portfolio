@@ -18,6 +18,8 @@ export default function App() {
   const [loadingText, setLoadingText] = useState('Initializing Canvas engine...');
   const scrollLock = useRef(false);
   const touchStartY = useRef(0);
+  const activeSectionRef = useRef(activeSection);
+  activeSectionRef.current = activeSection;
 
   // 1. Loader screen progress bar animation & asset preloading
   useEffect(() => {
@@ -38,8 +40,11 @@ export default function App() {
       setLoadProgress((prev) => {
         if (prev >= 100) {
           clearInterval(timer);
-          preloadProfileImage().then(() => {
-            setTimeout(() => setLoading(false), 500); // smooth fade after asset ready
+          Promise.all([
+            preloadProfileImage(),
+            typeof document !== 'undefined' && document.fonts ? document.fonts.ready : Promise.resolve()
+          ]).then(() => {
+            setTimeout(() => setLoading(false), 500); // smooth fade after assets and fonts ready
           });
           return 100;
         }
@@ -65,7 +70,7 @@ export default function App() {
     if (loading) return;
 
     const navigate = (direction) => {
-      const currentIndex = SECTIONS.indexOf(activeSection);
+      const currentIndex = SECTIONS.indexOf(activeSectionRef.current);
       let nextIndex = currentIndex;
 
       if (direction === 'down' && currentIndex < SECTIONS.length - 1) {
@@ -132,7 +137,7 @@ export default function App() {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [activeSection, loading]);
+  }, [loading]);
 
   const handleSectionSelect = (sectionId) => {
     setActiveSection(sectionId);
@@ -197,8 +202,8 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* 2. Interactive Three.js Background Layer */}
-      {!loading && <ThreeCanvas activeSection={activeSection} />}
+      {/* 2. Interactive Three.js Background Layer (Warm up during boot loader) */}
+      <ThreeCanvas activeSection={activeSection} />
 
       {/* 3. Global Navbar */}
       {!loading && (

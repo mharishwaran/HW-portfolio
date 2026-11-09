@@ -3,6 +3,22 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getProfileImageSync, preloadProfileImage } from '../utils/profileImageLoader';
 
+// Scratch objects allocated once to prevent garbage collection pauses during useFrame
+const _tempVel = new THREE.Vector3();
+const _deltaVec = new THREE.Vector3();
+const _leftAnchorOffset = new THREE.Vector3(-0.4, 0, 0);
+const _rightAnchorOffset = new THREE.Vector3(0.4, 0, 0);
+const _lanyardDir = new THREE.Vector3();
+const _downVec = new THREE.Vector3(0, -1, 0);
+const _targetQuat = new THREE.Quaternion();
+const _cardVel = new THREE.Vector3();
+const _tiltEuler = new THREE.Euler();
+const _tiltQuat = new THREE.Quaternion();
+
+const STRAP_COUNT = 8;
+const _leftStrapPoints = Array.from({ length: STRAP_COUNT }, () => new THREE.Vector3());
+const _rightStrapPoints = Array.from({ length: STRAP_COUNT }, () => new THREE.Vector3());
+
 // Helper to draw a rounded rectangle on a 2D canvas
 function drawRoundedRect(ctx, x, y, width, height, radius) {
   ctx.beginPath();
@@ -280,7 +296,7 @@ export default function IDCard3D() {
         node.pos.lerp(dragTarget.current, 0.25);
         node.acc.set(0, 0, 0);
       } else {
-        const vel = new THREE.Vector3().subVectors(node.pos, node.oldPos).multiplyScalar(dragFactor);
+        _tempVel.subVectors(node.pos, node.oldPos).multiplyScalar(dragFactor);
         node.oldPos.copy(node.pos);
         node.acc.copy(gravity);
         
@@ -288,7 +304,7 @@ export default function IDCard3D() {
         node.acc.x += Math.sin(t * 2 + i) * 0.6;
         node.acc.z += Math.cos(t * 1.5 + i) * 0.4;
         
-        node.pos.add(vel).addScaledVector(node.acc, dt * dt);
+        node.pos.add(_tempVel).addScaledVector(node.acc, dt * dt);
       }
     }
 
@@ -297,36 +313,29 @@ export default function IDCard3D() {
         const nA = nodes[i];
         const nB = nodes[i + 1];
 
-        const deltaVec = new THREE.Vector3().subVectors(nB.pos, nA.pos);
-        const dist = deltaVec.length();
+        _deltaVec.subVectors(nB.pos, nA.pos);
+        const dist = _deltaVec.length();
         const difference = dist - spacing;
-        const dir = deltaVec.normalize();
+        _deltaVec.normalize();
         
         if (nA.fixed) {
-          nB.pos.addScaledVector(dir, -difference);
+          nB.pos.addScaledVector(_deltaVec, -difference);
         } else {
-          nA.pos.addScaledVector(dir, difference * 0.5);
-          nB.pos.addScaledVector(dir, -difference * 0.5);
+          nA.pos.addScaledVector(_deltaVec, difference * 0.5);
+          nB.pos.addScaledVector(_deltaVec, -difference * 0.5);
         }
       }
     }
 
-    const leftAnchorOffset = new THREE.Vector3(-0.4, 0, 0);
-    const rightAnchorOffset = new THREE.Vector3(0.4, 0, 0);
-    const leftStrapPoints = [];
-    const rightStrapPoints = [];
-
     for (let i = 0; i < PHYSICS_NODES; i++) {
       const node = nodes[i];
       const factor = 1 - (i / (PHYSICS_NODES - 1));
-      const leftPt = node.pos.clone().addScaledVector(leftAnchorOffset, factor);
-      const rightPt = node.pos.clone().addScaledVector(rightAnchorOffset, factor);
-      leftStrapPoints.push(leftPt);
-      rightStrapPoints.push(rightPt);
+      _leftStrapPoints[i].copy(node.pos).addScaledVector(_leftAnchorOffset, factor);
+      _rightStrapPoints[i].copy(node.pos).addScaledVector(_rightAnchorOffset, factor);
     }
 
-    if (strapLeftRef.current) strapLeftRef.current.geometry.setFromPoints(leftStrapPoints);
-    if (strapRightRef.current) strapRightRef.current.geometry.setFromPoints(rightStrapPoints);
+    if (strapLeftRef.current) strapLeftRef.current.geometry.setFromPoints(_leftStrapPoints);
+    if (strapRightRef.current) strapRightRef.current.geometry.setFromPoints(_rightStrapPoints);
 
     const card = cardRef.current;
     if (card) {
@@ -334,23 +343,19 @@ export default function IDCard3D() {
       const parentNode = nodes[PHYSICS_NODES - 2];
       card.position.copy(cardNode.pos);
 
-      const lanyardDir = new THREE.Vector3().subVectors(cardNode.pos, parentNode.pos).normalize();
-      const targetQuat = new THREE.Quaternion().setFromUnitVectors(
-        new THREE.Vector3(0, -1, 0),
-        lanyardDir
-      );
+      _lanyardDir.subVectors(cardNode.pos, parentNode.pos).normalize();
+      _targetQuat.setFromUnitVectors(_downVec, _lanyardDir);
 
-      const cardVel = new THREE.Vector3().subVectors(cardNode.pos, cardNode.oldPos);
-      const targetTiltX = -cardVel.y * 3 - cardVel.z * 5;
-      const targetTiltZ = cardVel.x * 5;
-      const targetTiltY = cardVel.x * 2;
+      _cardVel.subVectors(cardNode.pos, cardNode.oldPos);
+      const targetTiltX = -_cardVel.y * 3 - _cardVel.z * 5;
+      const targetTiltZ = _cardVel.x * 5;
+      const targetTiltY = _cardVel.x * 2;
 
-      const tiltQuat = new THREE.Quaternion().setFromEuler(
-        new THREE.Euler(targetTiltX, targetTiltY, targetTiltZ)
-      );
+      _tiltEuler.set(targetTiltX, targetTiltY, targetTiltZ);
+      _tiltQuat.setFromEuler(_tiltEuler);
 
-      const finalQuat = targetQuat.multiply(tiltQuat);
-      card.quaternion.slerp(finalQuat, 0.15);
+      _targetQuat.multiply(_tiltQuat);
+      card.quaternion.slerp(_targetQuat, 0.15);
     }
   });
 
@@ -388,7 +393,7 @@ export default function IDCard3D() {
 
         {/* Main Card Plane (Double sided layout) */}
         {/* Front Plate */}
-        <mesh castShadow receiveShadow position={[0, 0, 0.005]}>
+        <mesh position={[0, 0, 0.005]}>
           <boxGeometry args={[1.2, 1.8, 0.01]} />
           <meshStandardMaterial
             transparent
@@ -407,11 +412,9 @@ export default function IDCard3D() {
           <boxGeometry args={[1.24, 1.84, 0.01]} />
           <meshPhysicalMaterial
             transparent
-            opacity={0.12}
-            roughness={0.05}
-            transmission={0.95}
-            thickness={0.05}
-            ior={1.5}
+            opacity={0.15}
+            roughness={0.06}
+            metalness={0.1}
             clearcoat={1.0}
             clearcoatRoughness={0.05}
             depthWrite={false}

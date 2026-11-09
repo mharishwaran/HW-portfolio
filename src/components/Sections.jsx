@@ -44,11 +44,11 @@ const Linkedin = (props) => (
   </svg>
 );
 
-// Slide motion variants for transitions
+// Slide motion variants for transitions (hardware-accelerated GPU transform & opacity)
 const sectionVariants = {
-  initial: { opacity: 0, scale: 0.95, y: 15, filter: 'blur(8px)' },
-  animate: { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
-  exit: { opacity: 0, scale: 1.05, y: -15, filter: 'blur(8px)', transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }
+  initial: { opacity: 0, scale: 0.95, y: 15 },
+  animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
+  exit: { opacity: 0, scale: 1.05, y: -15, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }
 };
 
 const staggerContainer = {
@@ -271,7 +271,17 @@ export function ProjectsSection({ onNavigate }) {
       desc: 'A MERN-based web application designed to help users find blood donors and handle emergency blood requests efficiently.',
       stack: ['MongoDB', 'Express.js', 'React.js', 'Node.js', 'JWT', 'REST API'],
       category: 'FULL STACK APP',
-      link: 'https://blood-donor-management-system-v2.netlify.app/'
+      link: 'https://blood-donor-management-system-v2.netlify.app/',
+      github: 'https://github.com/mharishwaran/blood-donor-management-system'
+    },
+    {
+      id: 2,
+      title: 'RESUMIQ – AI Resume Analyzer',
+      desc: 'An AI-powered resume analyzer that evaluates resumes by generating ATS compatibility scores and provides detailed AI-powered feedback to identify resume mistakes, suggest precise corrections, improve experience descriptions, and recommend relevant keywords.',
+      stack: ['React', 'Vite', 'Tailwind CSS', 'Node.js', 'Express.js', 'Gemini AI API', 'PDF / DOCX Parsing', 'REST API'],
+      category: 'FULL STACK AI APP',
+      link: 'https://resumiq-ai-hw.vercel.app/',
+      github: 'https://github.com/mharishwaran/resumiq'
     }
   ];
 
@@ -281,45 +291,57 @@ export function ProjectsSection({ onNavigate }) {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="flex flex-col items-start justify-center min-h-[85vh] max-w-xl md:max-w-2xl px-6 md:px-12 pointer-events-auto"
+      className="flex flex-col items-start justify-center min-h-[85vh] max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl w-full px-6 md:px-12 pointer-events-auto"
     >
       <div className="space-y-6 w-full">
         <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Projects</h2>
 
-        <div className="space-y-4 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
           {projects.map((project) => (
             <motion.div
               key={project.id}
-              className="glass-panel p-5 rounded-2xl border border-white/5 relative overflow-hidden transition-all duration-300 group hover:border-indigo-500/35 hover:shadow-indigo-500/5 hover:shadow-xl"
+              className="glass-panel p-5 sm:p-6 rounded-2xl border border-white/5 relative overflow-hidden transition-all duration-300 group hover:border-indigo-500/35 hover:shadow-indigo-500/5 hover:shadow-xl flex flex-col justify-between h-full"
               whileHover={{ y: -3 }}
             >
               <div className="absolute inset-0 bg-radial from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-              <div className="flex justify-between items-start">
-                <span className="text-xs font-bold text-indigo-400 font-mono tracking-widest uppercase">{project.category}</span>
-                <div className="flex gap-2">
-                  <a
-                    href={project.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="View Live Demo"
-                    aria-label="View Live Demo"
-                    className="p-1.5 rounded-full bg-white/5 border border-white/5 text-slate-400 hover:text-indigo-300 hover:bg-white/10 hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+              <div>
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-bold text-indigo-400 font-mono tracking-widest uppercase">{project.category}</span>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={project.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="View Live Demo"
+                      aria-label="View Live Demo"
+                      className="p-1.5 rounded-full bg-white/5 border border-white/5 text-slate-400 hover:text-indigo-300 hover:bg-white/10 hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                    <a
+                      href={project.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="View GitHub Repository"
+                      aria-label="View GitHub Repository"
+                      className="p-1.5 rounded-full bg-white/5 border border-white/5 text-slate-400 hover:text-indigo-300 hover:bg-white/10 hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
+                    >
+                      <Github className="w-4 h-4" />
+                    </a>
+                  </div>
                 </div>
+
+                <h3 className="text-lg sm:text-xl font-bold text-white mt-2 group-hover:text-indigo-200 transition-colors">
+                  {project.title}
+                </h3>
+                
+                <p className="text-xs sm:text-sm text-slate-400 mt-2.5 leading-relaxed font-light">
+                  {project.desc}
+                </p>
               </div>
 
-              <h3 className="text-lg sm:text-xl font-bold text-white mt-2 group-hover:text-indigo-200 transition-colors">
-                {project.title}
-              </h3>
-              
-              <p className="text-xs sm:text-sm text-slate-400 mt-2.5 leading-relaxed font-light">
-                {project.desc}
-              </p>
-
-              <div className="flex flex-wrap gap-1.5 mt-4">
+              <div className="flex flex-wrap gap-1.5 mt-4 pt-2">
                 {project.stack.map((tech) => (
                   <span 
                     key={tech} 
@@ -471,10 +493,10 @@ export function CertificationsSection({ onNavigate }) {
     },
     {
       id: 'chatgpt-masterclass',
-      title: 'ChatGPT Masterclass',
+      title: '30 Days MasterClass in Full Stack Development',
       issuer: 'NoviTech R&D Private Limited',
       date: 'January 22, 2026 – February 25, 2026',
-      desc: 'Comprehensive Masterclass covering advanced AI prompt engineering, chatbot development, and GPT-based solutions.',
+      desc: 'Successfully completed a 30 Days MasterClass in Full Stack Development, conducted by NoviTech R&D Private Limited.',
       color: 'from-purple-600/20 to-pink-600/20',
       image: '/assets/chatgpt_masterclass.png'
     },
